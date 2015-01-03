@@ -38,3 +38,19 @@
   (cons expression
         (lazy-seq (map s-reduce
                        (take-while s-reducible? (iterate s-reduce expression))))))
+
+(defrecord SBoolean [value]
+  Object
+  (toString [_] (str value)))
+(defmethod s-reducible? SBoolean [_] false)
+(defmethod s-reduce SBoolean [this] this)
+
+(defrecord SLessThan [left right]
+  Object
+  (toString [_] (str left " < " right)))
+(defmethod s-reducible? SLessThan [_] true)
+(defmethod s-reduce SLessThan [{:keys [left right]}]
+  (cond
+    (s-reducible? left) (->SLessThan (s-reduce left) right)
+    (s-reducible? right) (->SLessThan left (s-reduce right))
+    :else (->SBoolean (< (.value left) (.value right)))))
