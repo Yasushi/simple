@@ -35,10 +35,15 @@
     (s-reducible? right) (->SMultiply left (s-reduce right env))
     :else (->SNumber (* (.value left) (.value right)))))
 
-(defn s-run [expression env]
-  (cons expression
-        (if (s-reducible? expression)
-          (lazy-seq (s-run (s-reduce expression env) env)))))
+(defn s-run [statement env]
+  (cons [statement env]
+        (if (s-reducible? statement)
+          (lazy-seq
+           (let [run
+                 (fn
+                   ([st ev] (s-run st ev))
+                   ([exp] (s-run exp env)))]
+             (apply run (s-reduce statement env)))))))
 
 (defrecord SBoolean [value]
   Object
@@ -62,3 +67,18 @@
 (defmethod s-reducible? SVariable [_] true)
 (defmethod s-reduce SVariable [this env]
   (get env (.name this)))
+
+(defrecord SDoNothing []
+  Object
+  (toString [_] "do-nothing"))
+(defmethod s-reducible? SDoNothing [_] false)
+(defmethod s-reduce SDoNothing [this _] this)
+
+(defrecord SAssign [name expression]
+  Object
+  (toString [_] (str name " = " expression)))
+(defmethod s-reducible? SAssign [_] true)
+(defmethod s-reduce SAssign [{:keys [name expression]} env]
+  (if (s-reducible? expression)
+    [(->SAssign name (s-reduce expression env)) env]
+    [(->SDoNothing) (merge env {name expression})]))
