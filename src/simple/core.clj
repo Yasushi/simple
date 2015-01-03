@@ -98,3 +98,13 @@
     (cond
       (= condition (->SBoolean true)) [consequence env]
       (= condition (->SBoolean false)) [alternative env])))
+
+(defrecord SSequence [first second]
+  Object
+  (toString [_] (str first "; " second)))
+(defmethod s-reducible? SSequence [_] true)
+(defmethod s-reduce SSequence [{:keys [first second]} env]
+  (if (= first (->SDoNothing))
+    [second env]
+    (let [[rfirst renv] (s-reduce first env)]
+      [(->SSequence rfirst second) renv])))
