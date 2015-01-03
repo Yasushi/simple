@@ -45,6 +45,11 @@
                    ([exp] (s-run exp env)))]
              (apply run (s-reduce statement env)))))))
 
+(defn s-run-inspect [statement env]
+  (map (fn [[s e]]
+         [(s-inspect s) (into {} (for [[k v] e] [k (s-inspect v)]))])
+       (s-run statement env)))
+
 (defrecord SBoolean [value]
   Object
   (toString [_] (str value)))
@@ -82,3 +87,14 @@
   (if (s-reducible? expression)
     [(->SAssign name (s-reduce expression env)) env]
     [(->SDoNothing) (merge env {name expression})]))
+
+(defrecord SIf [condition consequence alternative]
+  Object
+  (toString [_] (str "if ( " condition " ) then { " consequence " } else { " alternative " }")))
+(defmethod s-reducible? SIf [_] true)
+(defmethod s-reduce SIf [{:keys [condition consequence alternative]} env]
+  (if (s-reducible? condition)
+    [(->SIf (s-reduce condition env) consequence alternative) env]
+    (cond
+      (= condition (->SBoolean true)) [consequence env]
+      (= condition (->SBoolean false)) [alternative env])))
