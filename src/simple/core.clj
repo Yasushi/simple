@@ -108,3 +108,10 @@
     [second env]
     (let [[rfirst renv] (s-reduce first env)]
       [(->SSequence rfirst second) renv])))
+
+(defrecord SWhile [condition body]
+  Object
+  (toString [_] (str "while (" condition ") { " body " }")))
+(defmethod s-reducible? SWhile [_] true)
+(defmethod s-reduce SWhile [{:keys [condition body] :as this} env]
+  [(->SIf condition (->SSequence body this) (->SDoNothing)) env])
