@@ -131,3 +131,21 @@
 (defmethod s-evaluate SLessThan [this env]
   (->SBoolean (< (.value (s-evaluate (.left this) env))
                  (.value (s-evaluate (.right this) env)))))
+
+(defmethod s-evaluate SAssign [this env]
+  (assoc env (.name this) (s-evaluate (.expression this) env)))
+(defmethod s-evaluate SDoNothing [this env] env)
+(defmethod s-evaluate SIf [this env]
+  (if (.value (s-evaluate (.condition this) env))
+    (s-evaluate (.consequence this) env)
+    (s-evaluate (.alternative this) env)))
+(defmethod s-evaluate SSequence [this env]
+  (->> env
+       (s-evaluate (.first this))
+       (s-evaluate (.second this))))
+(defmethod s-evaluate SWhile [this env]
+  (if (.value (s-evaluate (.condition this) env))
+    (->> env
+         (s-evaluate (.body this))
+         (s-evaluate this))
+    env))
