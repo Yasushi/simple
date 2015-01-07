@@ -115,3 +115,19 @@
 (defmethod s-reducible? SWhile [_] true)
 (defmethod s-reduce SWhile [{:keys [condition body] :as this} env]
   [(->SIf condition (->SSequence body this) (->SDoNothing)) env])
+
+(defmulti s-evaluate (fn [& args] (class (first args))))
+(defmethod s-evaluate SNumber [this _] this)
+(defmethod s-evaluate SBoolean [this _] this)
+(defmethod s-evaluate SVariable [this env] (get env (.name this)))
+(defmethod s-evaluate SAdd [this env]
+  (->SNumber
+   (+ (.value (s-evaluate (.left this) env))
+      (.value (s-evaluate (.right this) env)))))
+(defmethod s-evaluate SMultiply [this env]
+  (->SNumber
+   (* (.value (s-evaluate (.left this) env))
+      (.value (s-evaluate (.right this) env)))))
+(defmethod s-evaluate SLessThan [this env]
+  (->SBoolean (< (.value (s-evaluate (.left this) env))
+                 (.value (s-evaluate (.right this) env)))))
